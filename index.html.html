@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Le Porte di Melito - App Gioco</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      /* PALETTE CHIARA – SABBIA / CALCARE / TERRA (zero blu) */
+      --accent: #b08a63;                 /* sabbia calda */
+      --accent-soft: rgba(176, 138, 99, 0.25);
+
+      --bg-body: #f1e8dc;                /* sabbia chiara */
+      --surface-soft: rgba(248, 243, 235, 0.96); /* pannelli chiari */
+      --surface-2: rgba(242, 232, 222, 0.92);    /* pannelli leggermente più scuri */
+      --surface-3: rgba(233, 220, 206, 0.92);    /* aree/strip */
+      --border-subtle: rgba(145, 118, 92, 0.26);
+
+      --text-main: #3a2f25;              /* marrone scuro caldo */
+      --text-muted: #6f5f4f;             /* marrone sabbia */
+
+      --ok: #7d866f;                     /* oliva tenue */
+      --danger: #a06a4f;                 /* terracotta */
+
+      --shadow: rgba(58, 47, 37, 0.18);
+      --shadow-2: rgba(58, 47, 37, 0.28);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+    body {
+      background: linear-gradient(180deg, #f6efe6 0%, #efe2d4 45%, #ead8c6 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 430px;
+      background:
+        radial-gradient(circle at top left, rgba(176, 138, 99, 0.22), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(160, 106, 79, 0.12), transparent 60%),
+        var(--surface-soft);
+      border-radius: 32px;
+      box-shadow: 0 24px 60px var(--shadow-2);
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(10px);
+    }
+
+    header {
+      padding: 18px 22px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      background:
+        linear-gradient(135deg, rgba(248, 243, 235, 0.96), rgba(242, 232, 222, 0.94)),
+        radial-gradient(circle at top left, rgba(176, 138, 99, 0.22), transparent 55%);
+    }
+
+    header .title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    header .title { font-size: 1.05rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+    header .badge {
+      font-size: 0.7rem; padding: 4px 10px; border-radius: 999px;
+      border: 1px solid rgba(145, 118, 92, 0.35); color: var(--text-muted);
+      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+      background: rgba(255,255,255,0.55);
+    }
+    header .badge-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--accent); }
+    header .subtitle { margin-top: 6px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.35; }
+
+    .progress {
+      padding: 10px 18px;
+      border-bottom: 1px solid rgba(145, 118, 92, 0.18);
+      background: var(--surface-2);
+      display: flex; align-items: center; gap: 10px; font-size: 0.75rem;
+    }
+    .progress-label { opacity: 0.95; min-width: 50px; color: var(--text-muted); font-weight: 700; }
+    .progress-bar {
+      flex: 1; height: 7px; background: rgba(255,255,255,0.55);
+      border-radius: 999px; border: 1px solid rgba(145, 118, 92, 0.22); overflow: hidden;
+    }
+    .progress-bar-inner {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, rgba(176, 138, 99, 0.95), rgba(160, 106, 79, 0.85));
+      transition: width 0.3s ease;
+      box-shadow: 0 0 0 6px rgba(176, 138, 99, 0.10);
+    }
+    .progress-step { font-size: 0.75rem; min-width: 66px; text-align: right; color: var(--text-muted); font-weight: 800; }
+
+    main { padding: 18px 18px 16px; min-height: 360px; }
+    .screen { display: none; animation: fadeIn 0.28s ease; }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      padding: 4px 11px; border-radius: 999px;
+      background: rgba(255,255,255,0.55);
+      border: 1px solid rgba(145, 118, 92, 0.24);
+      margin-bottom: 10px; color: var(--text-muted);
+      font-weight: 800;
+    }
+    .tag span.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    .screen-title { font-size: 1.35rem; font-weight: 900; margin-bottom: 4px; letter-spacing: -0.02em; }
+    .screen-subtitle { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45; font-weight: 650; }
+
+    .card {
+      background: rgba(255,255,255,0.60);
+      border-radius: 18px; padding: 12px;
+      border: 1px solid rgba(145, 118, 92, 0.22);
+      margin-bottom: 12px;
+      box-shadow: 0 14px 36px var(--shadow);
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; gap: 10px; }
+    .card-title { font-size: 0.96rem; font-weight: 900; }
+    .pill {
+      font-size: 0.7rem; padding: 2px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.55);
+      border: 1px solid rgba(145, 118, 92, 0.22);
+      color: var(--text-muted); white-space: nowrap;
+      font-weight: 850;
+    }
+    .card-text { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; font-weight: 650; }
+
+    .btn {
+      width: 100%; padding: 11px 15px; border-radius: 999px;
+      border: none; font-size: 0.9rem; margin-top: 10px;
+      cursor: pointer; font-weight: 900;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      transition: transform 0.12s ease, filter 0.15s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(176, 138, 99, 0.95), rgba(160, 106, 79, 0.88));
+      color: #2b1f16;
+      box-shadow: 0 12px 22px rgba(145, 118, 92, 0.22);
+      border: 1px solid rgba(145, 118, 92, 0.22);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.55);
+      color: var(--text-main);
+      border: 1px solid rgba(145, 118, 92, 0.24);
+    }
+    .btn:hover { filter: brightness(1.01); transform: translateY(-1px); }
+    .btn:active { transform: translateY(1px) scale(0.99); }
+    .btn-icon { font-size: 1.1rem; }
+
+    .question { font-size: 0.9rem; font-weight: 950; margin: 10px 0 8px; }
+    .options { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .options label {
+      font-size: 0.82rem; display: flex; align-items: flex-start; gap: 8px;
+      padding: 9px; border-radius: 12px;
+      background: rgba(255,255,255,0.55);
+      border: 1px solid rgba(145, 118, 92, 0.22);
+      cursor: pointer; line-height: 1.25;
+      color: var(--text-main);
+      font-weight: 650;
+    }
+    .options input[type="radio"] { accent-color: var(--accent); cursor: pointer; margin-top: 2px; }
+    .options label:hover { border-color: rgba(176, 138, 99, 0.7); }
+
+    .feedback { margin-top: 8px; font-size: 0.84rem; min-height: 18px; font-weight: 950; }
+    .feedback.error { color: var(--danger); }
+    .feedback.success { color: var(--ok); }
+
+    .hint-box {
+      margin-top: 10px; font-size: 0.82rem;
+      padding: 10px; border-radius: 14px;
+      background: rgba(255,255,255,0.52);
+      border: 1px dashed rgba(145, 118, 92, 0.28);
+      color: var(--text-muted);
+      font-weight: 650;
+    }
+    .hint-box ul { margin-top: 6px; padding-left: 16px; }
+    .hint-box li { margin-bottom: 3px; }
+    .hidden { display: none; }
+
+    /* MAPPA */
+    .map-wrap {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(145, 118, 92, 0.24);
+      background: rgba(255,255,255,0.35);
+    }
+    .map-wrap img { width: 100%; display: block; pointer-events: none; }
+    .map-pin {
+      position: absolute;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      background: #ffffff;
+      box-shadow: 0 0 0 6px rgba(255,255,255,.25);
+      z-index: 10;
+      border: 1px solid rgba(145,118,92,0.18);
+    }
+
+    .legend {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      align-items: center;
+      font-weight: 750;
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; background: #ffffff; border: 1px solid rgba(145,118,92,0.18); }
+
+    /* LAVAGNA (ora chiara: bacheca in sughero/sabbia) */
+    .lavagna-wrapper { margin-top: 4px; }
+    .lavagna {
+      position: relative;
+      border-radius: 24px;
+      padding: 16px 14px 16px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.55), transparent 55%),
+        linear-gradient(180deg, #efe2d4, #ead8c6);
+      border: 2px solid rgba(145,118,92,0.28);
+      box-shadow: inset 0 0 26px rgba(145,118,92,0.12), 0 18px 30px rgba(145,118,92,0.18);
+      overflow: hidden;
+    }
+    .chalk-title {
+      font-weight: 950; font-size: 0.9rem; color: var(--text-main);
+      letter-spacing: 0.09em; text-transform: uppercase;
+      margin-bottom: 8px; text-align: center;
+    }
+    .chalk-subtitle { font-size: 0.78rem; color: var(--text-muted); text-align: center; margin-bottom: 10px; font-weight: 650; }
+
+    .lavagna-photos {
+      min-height: 210px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      padding: 6px 2px 10px;
+      padding-right: 190px; /* spazio per post-it */
+    }
+
+    .photo-card {
+      width: 86px; height: 108px;
+      background: rgba(255,255,255,0.92);
+      border-radius: 10px;
+      box-shadow: 0 10px 24px rgba(145,118,92,0.20);
+      padding: 4px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      position: relative;
+      border: 1px solid rgba(145,118,92,0.18);
+    }
+    .photo-card::before {
+      content: "";
+      position: absolute;
+      width: 26px; height: 10px;
+      background: rgba(255, 245, 220, 0.95);
+      top: -6px; left: 50%;
+      transform: translateX(-50%) rotate(-2deg);
+      border-radius: 2px;
+      box-shadow: 0 6px 10px rgba(145,118,92,0.16);
+      border: 1px solid rgba(145,118,92,0.12);
+    }
+
+    .photo-thumb {
+      flex: 1;
+      border-radius: 6px;
+      background: linear-gradient(135deg, rgba(176, 138, 99, 0.28), rgba(160, 106, 79, 0.20));
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(58,47,37,0.75);
+      font-weight: 950;
+      font-size: 0.72rem;
+      text-align: center;
+      padding: 6px;
+      border: 1px dashed rgba(145,118,92,0.22);
+    }
+    .photo-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-caption { margin-top: 4px; font-size: 0.7rem; color: #2b1f16; text-align: center; line-height: 1.1; font-weight: 800; }
+    .photo-card.me-card { border: 2px solid rgba(176, 138, 99, 0.85); }
+    .photo-card.me-card::before { background: rgba(255, 245, 220, 0.98); }
+
+    .sticky-score {
+      position: absolute;
+      right: 10px; top: 12px;
+      width: 175px;
+      background: rgba(255, 245, 220, 0.95);
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 18px 30px rgba(145,118,92,0.20), 0 0 0 1px rgba(145,118,92,0.14);
+      transform: rotate(2deg);
+      font-size: 0.72rem;
+      color: #2b1f16;
+      border: 1px solid rgba(145,118,92,0.18);
+    }
+    .sticky-score-title { font-weight: 950; font-size: 0.78rem; margin-bottom: 6px; }
+    .final-score {
+      font-size: 0.74rem;
+      margin-bottom: 8px;
+      color: #2b1f16;
+      line-height: 1.35;
+      font-weight: 900;
+      background: rgba(255,255,255,0.65);
+      border-radius: 10px;
+      padding: 6px 8px;
+      border: 1px solid rgba(145,118,92,0.16);
+    }
+
+    .field { margin-top: 8px; margin-bottom: 6px; }
+    .field label { font-size: 0.72rem; color: #2b1f16; display: block; margin-bottom: 4px; font-weight: 900; }
+    .field input[type="text"] {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(145,118,92,0.26);
+      background: rgba(255, 255, 255, 0.75);
+      color: #2b1f16;
+      font-size: 0.75rem;
+      outline: none;
+      font-weight: 700;
+    }
+    .field input[type="text"]:focus {
+      border-color: rgba(176,138,99,0.75);
+      box-shadow: 0 0 0 3px rgba(176,138,99,0.12);
+    }
+
+    .file-row {
+      margin-top: 6px;
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.62);
+      border: 1px dashed rgba(145,118,92,0.22);
+    }
+    .file-row small { display: block; margin-top: 4px; opacity: 0.9; color: var(--text-muted); font-weight: 650; }
+
+    .leaderboard { margin-top: 8px; font-size: 0.72rem; color: #2b1f16; }
+    .leaderboard h4 { margin-bottom: 4px; font-size: 0.75rem; font-weight: 950; }
+    .leaderboard ol { padding-left: 16px; }
+    .leaderboard li { margin-bottom: 2px; }
+    .leaderboard span.me { color: #4a3a2b; font-weight: 950; }
+
+    .badges { margin-top: 6px; padding-left: 16px; }
+    .badges li { margin-bottom: 2px; }
+
+    footer {
+      font-size: 0.7rem;
+      text-align: center;
+      color: var(--text-muted);
+      padding: 6px 10px 12px;
+      border-top: 1px solid rgba(145,118,92,0.20);
+      background: rgba(255,255,255,0.55);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <header>
+    <div class="title-row">
+      <div class="title">Le Porte di Melito</div>
+      <div class="badge"><span class="badge-dot"></span><span>Urban game</span></div>
+    </div>
+    <div class="subtitle">Mappa libera: lo sblocco è solo quando “scannerizzi” il QR e completi i quiz.</div>
+  </header>
+
+  <div class="progress">
+    <div class="progress-label">Percorso</div>
+    <div class="progress-bar"><div class="progress-bar-inner" id="progress-bar-inner"></div></div>
+    <div class="progress-step" id="progress-step">0 / 6</div>
+  </div>
+
+  <main>
+    <!-- INTRO -->
+    <section class="screen active" id="screen-intro" data-step="0">
+      <div class="tag"><span class="dot"></span><span>Benvenuto</span></div>
+      <h1 class="screen-title">Inizia il viaggio</h1>
+      <p class="screen-subtitle">La mappa non blocca nulla. Vai dove vuoi. Il gioco “si attiva” solo davanti alle porte e ai murales (QR + quiz).</p>
+
+    
+      <button class="btn btn-primary" onclick="startJourney()"><span class="btn-icon">▶</span> Apri la mappa</button>
+    </section>
+
+    <!-- MAPPA -->
+    <section class="screen" id="screen-mappa" data-step="1">
+      <div class="tag"><span class="dot"></span><span>Percorso</span></div>
+      <h2 class="screen-title">Mappa di Melito</h2>
+      <p class="screen-subtitle">Tocca i punti (simulazione porte). In reale: ci arrivi fisicamente e scannerizzi il QR.</p>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Percorso</div><div class="pill">tap sui punti</div></div>
+
+        <div class="map-wrap">
+          <img src="percorso.png" alt="Percorso Melito">
+          <!-- coordinate dai cerchi bianchi pieni -->
+          <div class="map-pin" style="top:7.46%; left:17.23%;" onclick="showScreen('screen-anima')" title="Porta Anima"></div>
+          <div class="map-pin" style="top:56.81%; left:69.02%;" onclick="showScreen('screen-storia')" title="Porta Storia"></div>
+          <div class="map-pin" style="top:70.41%; left:88.10%;" onclick="showScreen('screen-tradizione')" title="Porta Tradizione"></div>
+        </div>
+
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot"></span> Porte (QR)</span>
+        </div>
+
+        <button class="btn btn-secondary" onclick="showScreen('screen-intro')">← Torna all’intro</button>
+      </div>
+    </section>
+
+    <!-- TRADIZIONE -->
+    <section class="screen" id="screen-tradizione" data-step="2">
+      <div class="tag"><span class="dot"></span><span>Porta 1 · Tradizione</span></div>
+      <h2 class="screen-title">Porta della Tradizione</h2>
+      <p class="screen-subtitle">Scannerizzi il QR e completi il quiz.</p>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">QR · Tradizione</div><div class="pill">3 domande</div></div>
+
+        <button class="btn btn-secondary" onclick="showElement('quiz-tradizione-box')"><span class="btn-icon">📷</span> Scannerizza QR Tradizione</button>
+
+        <div id="quiz-tradizione-box" class="hidden" style="margin-top:10px;">
+          <form id="quiz-tradizione">
+            <p class="question">1) Qual è il momento più simbolico della festa della Madonna di Porto Salvo per la comunità?</p>
+            <div class="options">
+              <label><input type="radio" name="trad1" value="a"> I fuochi sul lungomare alla fine della giornata.</label>
+              <label><input type="radio" name="trad1" value="b"> La processione che dal paese scende verso il mare col simulacro.</label>
+              <label><input type="radio" name="trad1" value="c"> Solo le bancarelle in piazza.</label>
+            </div>
+
+            <p class="question">2) La tradizione, nel percorso, è soprattutto:</p>
+            <div class="options">
+              <label><input type="radio" name="trad2" value="a"> Memoria trasmessa da gesti, luoghi e persone.</label>
+              <label><input type="radio" name="trad2" value="b"> Ripetizione identica del passato.</label>
+              <label><input type="radio" name="trad2" value="c"> Folklore per intrattenere.</label>
+            </div>
+
+            <p class="question">3) Dove la riconosci di più a Melito Vecchio?</p>
+            <div class="options">
+              <label><input type="radio" name="trad3" value="a"> Solo nei musei.</label>
+              <label><input type="radio" name="trad3" value="b"> Solo nelle feste ufficiali.</label>
+              <label><input type="radio" name="trad3" value="c"> Nel rapporto tra strade, case, alture e panorama.</label>
+            </div>
+          </form>
+
+          <button class="btn btn-primary" onclick="submitMultiQuiz('quiz-tradizione',{trad1:'b',trad2:'a',trad3:'c'},'screen-murales')">
+            Conferma e vai ai Murales →
+          </button>
+          <p id="feedback-quiz-tradizione" class="feedback"></p>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" onclick="showScreen('screen-mappa')">← Torna alla mappa</button>
+    </section>
+
+    <!-- MURALES -->
+    <section class="screen" id="screen-murales" data-step="3">
+      <div class="tag"><span class="dot"></span><span>Percorso · Murales</span></div>
+      <h2 class="screen-title">Murales verso Pentidattilo</h2>
+      <p class="screen-subtitle">Checkpoint: QR dei murales + quiz.</p>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">QR · Murales</div><div class="pill">2 domande</div></div>
+
+        <button class="btn btn-secondary" onclick="showElement('quiz-murales-box')"><span class="btn-icon">📷</span> Scannerizza QR Murales</button>
+
+        <div id="quiz-murales-box" class="hidden" style="margin-top:10px;">
+          <form id="quiz-murales">
+            <p class="question">1) I murales nel percorso servono a:</p>
+            <div class="options">
+              <label><input type="radio" name="mur1" value="a"> Riattivare la memoria nello spazio pubblico.</label>
+              <label><input type="radio" name="mur1" value="b"> Decorare senza raccontare.</label>
+              <label><input type="radio" name="mur1" value="c"> Sostituire la storia reale.</label>
+            </div>
+
+            <p class="question">2) Pentidattilo nel tuo racconto è simbolo di:</p>
+            <div class="options">
+              <label><input type="radio" name="mur2" value="a"> Modernità e nuovi quartieri.</label>
+              <label><input type="radio" name="mur2" value="b"> Mito, fragilità e memoria del territorio.</label>
+              <label><input type="radio" name="mur2" value="c"> Un porto commerciale.</label>
+            </div>
+          </form>
+
+          <button class="btn btn-primary" onclick="submitMultiQuiz('quiz-murales',{mur1:'a',mur2:'b'},'screen-storia')">
+            Conferma e vai alla Storia →
+          </button>
+          <p id="feedback-quiz-murales" class="feedback"></p>
+
+          <div class="hint-box">
+            <b>Indizi</b>
+            <ul>
+              <li>Il profilo di una mano di roccia racconta un borgo sospeso tra mito e frana.</li>
+              <li>Segui il murale di Pentidattilo: lì trovi la Porta della Storia.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" onclick="showScreen('screen-mappa')">← Torna alla mappa</button>
+    </section>
+
+    <!-- STORIA (2 domande) -->
+    <section class="screen" id="screen-storia" data-step="4">
+      <div class="tag"><span class="dot"></span><span>Porta 2 · Storia</span></div>
+      <h2 class="screen-title">Porta della Storia</h2>
+      <p class="screen-subtitle">Scannerizzi il QR e completi il quiz.</p>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">QR · Storia</div><div class="pill">2 domande</div></div>
+
+        <button class="btn btn-secondary" onclick="showElement('quiz-storia-box')"><span class="btn-icon">📷</span> Scannerizza QR Storia</button>
+
+        <div id="quiz-storia-box" class="hidden" style="margin-top:10px;">
+          <form id="quiz-storia">
+            <p class="question">1) Perché Pentidattilo è centrale nella memoria del territorio?</p>
+            <div class="options">
+              <label><input type="radio" name="stor1" value="a"> È un quartiere moderno di Melito.</label>
+              <label><input type="radio" name="stor1" value="b"> Profilo e vicende hanno segnato l’immaginario e la memoria locale.</label>
+              <label><input type="radio" name="stor1" value="c"> Ospita il porto principale.</label>
+            </div>
+
+            <p class="question">2) La storia, qui, è soprattutto:</p>
+            <div class="options">
+              <label><input type="radio" name="stor2" value="a"> Stratificazione di luoghi, ricordi, trasformazioni.</label>
+              <label><input type="radio" name="stor2" value="b"> Cronologia fredda senza persone.</label>
+              <label><input type="radio" name="stor2" value="c"> Una cosa ferma e immobile.</label>
+            </div>
+          </form>
+
+          <button class="btn btn-primary" onclick="submitMultiQuiz('quiz-storia',{stor1:'b',stor2:'a'},'screen-anima')">
+            Conferma e vai all’Anima →
+          </button>
+          <p id="feedback-quiz-storia" class="feedback"></p>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" onclick="showScreen('screen-mappa')">← Torna alla mappa</button>
+    </section>
+
+    <!-- ANIMA -->
+    <section class="screen" id="screen-anima" data-step="5">
+      <div class="tag"><span class="dot"></span><span>Porta 3 · Anima</span></div>
+      <h2 class="screen-title">Porta dell’Anima</h2>
+      <p class="screen-subtitle">Ultimo QR: panorama + quiz finale.</p>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">QR · Anima</div><div class="pill">2 domande</div></div>
+
+        <button class="btn btn-secondary" onclick="showElement('quiz-anima-box')"><span class="btn-icon">📷</span> Scannerizza QR Anima</button>
+
+        <div id="quiz-anima-box" class="hidden" style="margin-top:10px;">
+          <form id="quiz-anima">
+            <p class="question">1) Dalla Porta dell’Anima, cosa racconta meglio il legame tra paese e mare?</p>
+            <div class="options">
+              <label><input type="radio" name="anim1" value="a"> Solo le case addossate alla collina.</label>
+              <label><input type="radio" name="anim1" value="b"> La linea del mare oltre i tetti, in continuità con le strade che scendono.</label>
+              <label><input type="radio" name="anim1" value="c"> Solo la strada alle spalle.</label>
+            </div>
+
+            <p class="question">2) “Anima” nel progetto significa:</p>
+            <div class="options">
+              <label><input type="radio" name="anim2" value="a"> Punto di vista: ciò che senti quando il luogo si apre.</label>
+              <label><input type="radio" name="anim2" value="b"> Premio finale per chi arriva primo.</label>
+              <label><input type="radio" name="anim2" value="c"> Sezione senza legame col percorso.</label>
+            </div>
+          </form>
+
+          <button class="btn btn-primary" onclick="submitMultiQuiz('quiz-anima',{anim1:'b',anim2:'a'},'screen-finale',true)">
+            Conferma e vai alla Lavagna →
+          </button>
+          <p id="feedback-quiz-anima" class="feedback"></p>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" onclick="showScreen('screen-mappa')">← Torna alla mappa</button>
+    </section>
+
+    <!-- FINALE -->
+    <section class="screen" id="screen-finale" data-step="6">
+      <div class="tag"><span class="dot"></span><span>Fine percorso</span></div>
+      <h2 class="screen-title">Lavagna dei viaggiatori</h2>
+      <p class="screen-subtitle">Qui inserisci il nome, vedi il punteggio e puoi aggiungere foto.</p>
+
+      <div class="lavagna-wrapper">
+        <div class="lavagna">
+          <div class="chalk-title">Foto & nomi dei viaggiatori</div>
+          <div class="chalk-subtitle">Puoi aggiungere scatti del percorso (porte, murales, panorama).</div>
+
+          <div class="lavagna-photos" id="lavagna-photos">
+            <div class="photo-card me-card" id="me-card">
+              <div class="photo-thumb" id="me-thumb">TU</div>
+              <div class="photo-caption" id="photo-me-caption">Tu · in attesa</div>
+            </div>
+
+            <div class="photo-card">
+              <div class="photo-thumb">ARCHIVIO</div>
+              <div class="photo-caption">Armato · 🧠👁️🚶</div>
+            </div>
+            <div class="photo-card">
+              <div class="photo-thumb">ARCHIVIO</div>
+              <div class="photo-caption">Carrà · 👁️🚶</div>
+            </div>
+            <div class="photo-card">
+              <div class="photo-thumb">ARCHIVIO</div>
+              <div class="photo-caption">Pastura · 🚶</div>
+            </div>
+          </div>
+
+          <div class="sticky-score">
+            <div class="sticky-score-title">Il tuo punteggio</div>
+            <div id="final-score-text" class="final-score">Calcolo in corso…</div>
+
+            <div class="field">
+              <label for="player-name">Nome o nickname</label>
+              <input id="player-name" type="text" placeholder="Es. Viaggiatore di Melito">
+            </div>
+
+            <div class="file-row">
+              <label for="photo-upload" style="font-weight:900; font-size:0.72rem;">Carica foto sulla lavagna</label>
+              <input id="photo-upload" type="file" accept="image/*" multiple>
+              <small>Puoi selezionare più foto: vengono aggiunte come polaroid.</small>
+            </div>
+
+            <button class="btn btn-primary" onclick="registerPlayer()">
+              <span class="btn-icon">✓</span> Salva nome + punteggio
+            </button>
+
+            <div id="leaderboard" class="leaderboard"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>Prototipo UI · La mappa è libera. La “verifica” è nel QR (quiz).</footer>
+</div>
+
+<script>
+  const state = {
+    correctAnswers: 0,
+    totalQuestions: 9, // 3 + 2 + 2 + 2
+    startTime: null,
+    endTime: null,
+    score: 0,
+    timeSeconds: 0,
+    answeredCorrectly: new Set()
+  };
+
+  const stepsCount = 6;
+
+  function updateProgress(stepIndex) {
+    const inner = document.getElementById('progress-bar-inner');
+    const label = document.getElementById('progress-step');
+    const percentage = (stepIndex / stepsCount) * 100;
+    inner.style.width = percentage + '%';
+    label.textContent = stepIndex + ' / ' + stepsCount;
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const screen = document.getElementById(id);
+    if (!screen) return;
+    screen.classList.add('active');
+
+    const stepIndex = parseInt(screen.getAttribute('data-step'), 10) || 0;
+    updateProgress(stepIndex);
+
+    if (id === 'screen-finale') finalizeScore();
+  }
+
+  function showElement(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('hidden');
+  }
+
+  function startJourney() {
+    if (!state.startTime) state.startTime = new Date();
+    showScreen('screen-mappa');
+  }
+
+  function submitMultiQuiz(formId, correctMap, nextScreenId, isLast=false) {
+    const form = document.getElementById(formId);
+    const feedback = document.getElementById('feedback-' + formId);
+    if (!form || !feedback) return;
+
+    for (const name of Object.keys(correctMap)) {
+      const selected = form.querySelector(`input[name="${name}"]:checked`);
+      if (!selected) {
+        feedback.textContent = "Rispondi a tutte le domande per continuare.";
+        feedback.className = "feedback error";
+        return;
+      }
+    }
+
+    for (const [name, correctVal] of Object.entries(correctMap)) {
+      const selected = form.querySelector(`input[name="${name}"]:checked`);
+      if (!selected || selected.value !== correctVal) {
+        feedback.textContent = "C’è almeno una risposta sbagliata. Riprova.";
+        feedback.className = "feedback error";
+        return;
+      }
+    }
+
+    for (const [name, correctVal] of Object.entries(correctMap)) {
+      const key = `${formId}:${name}:${correctVal}`;
+      if (!state.answeredCorrectly.has(key)) {
+        state.answeredCorrectly.add(key);
+        state.correctAnswers++;
+      }
+    }
+
+    feedback.textContent = "Perfetto. QR completato!";
+    feedback.className = "feedback success";
+
+    if (isLast) state.endTime = new Date();
+
+    setTimeout(() => {
+      feedback.textContent = "";
+      showScreen(nextScreenId);
+    }, 600);
+  }
+
+  function computeBadges(seconds) {
+    const badges = [];
+    if (state.correctAnswers >= 8) badges.push("🧠 Memoria");
+    if (state.correctAnswers >= 6) badges.push("👁️ Occhio");
+    if (seconds <= 180) badges.push("🚶 Cammino");
+    if (badges.length === 0) badges.push("🚶 Cammino");
+    return badges;
+  }
+
+  function finalizeScore() {
+    if (!state.startTime) state.startTime = new Date();
+    if (!state.endTime) state.endTime = new Date();
+
+    const ms = state.endTime - state.startTime;
+    const seconds = Math.max(1, Math.floor(ms / 1000));
+    state.timeSeconds = seconds;
+
+    let score = state.correctAnswers * 120 - seconds;
+    if (score < 0) score = 0;
+    state.score = score;
+
+    const badges = computeBadges(seconds);
+    const badgeIcons = badges.map(b => b.split(" ")[0]).join("");
+
+    const box = document.getElementById('final-score-text');
+    box.innerHTML =
+      `Corrette: <b>${state.correctAnswers}/${state.totalQuestions}</b><br>` +
+      `Tempo: <b>${seconds}s</b><br>` +
+      `Punteggio: <b>${score} pt</b><br>` +
+      `Tracce: <b>${badgeIcons}</b>`;
+
+    const photoCaption = document.getElementById('photo-me-caption');
+    if (photoCaption) photoCaption.textContent = `Tu · ${score} pt · ${badgeIcons}`;
+  }
+
+  function badgeText(badgeLabel) {
+    if (badgeLabel.includes("Memoria")) return "hai colto la stratificazione di storia e territorio";
+    if (badgeLabel.includes("Occhio")) return "hai osservato indizi e dettagli nello spazio";
+    if (badgeLabel.includes("Cammino")) return "hai attraversato il percorso con continuità";
+    return "";
+  }
+
+  function registerPlayer() {
+    finalizeScore();
+
+    const nameInput = document.getElementById('player-name');
+    const name = (nameInput.value || "").trim() || "Viaggiatore senza nome";
+
+    const badges = computeBadges(state.timeSeconds);
+    const badgeIcons = badges.map(b => b.split(" ")[0]).join("");
+
+    const photoCaption = document.getElementById('photo-me-caption');
+    if (photoCaption) photoCaption.textContent = `${name} · ${state.score} pt · ${badgeIcons}`;
+
+    const meThumb = document.getElementById('me-thumb');
+    if (meThumb && meThumb.querySelector('img') === null) {
+      const initials = name.split(" ").filter(Boolean).slice(0,2).map(s => s[0].toUpperCase()).join("");
+      meThumb.textContent = initials || "TU";
+    }
+
+    const leaderboardDiv = document.getElementById('leaderboard');
+
+    const fake = [
+      { name: "Armato", badges: "🧠👁️🚶" },
+      { name: "Carrà", badges: "👁️🚶" },
+      { name: "Pastura", badges: "🚶" }
+    ];
+
+    let html = `<h4>Il tuo profilo</h4>`;
+    html += `<div><b>${name}</b></div>`;
+    html += `<div>Punteggio: <b>${state.score} pt</b> · Tempo: <b>${state.timeSeconds}s</b></div>`;
+    html += `<div>Tracce: <b>${badgeIcons}</b></div>`;
+    html += `<ul class="badges">`;
+    badges.forEach(b => html += `<li>${b} – ${badgeText(b)}</li>`);
+    html += `</ul>`;
+
+    html += `<h4 style="margin-top:8px">Esempi in lavagna</h4><ol>`;
+    fake.forEach(p => html += `<li>${p.name} · ${p.badges}</li>`);
+    html += `<li><span class="me">${name} · ${state.score} pt · ${badgeIcons}</span></li></ol>`;
+
+    leaderboardDiv.innerHTML = html;
+  }
+
+  const photoInput = document.getElementById('photo-upload');
+  photoInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const container = document.getElementById('lavagna-photos');
+    const name = (document.getElementById('player-name').value || "").trim() || "Viaggiatore";
+
+    files.forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const card = document.createElement('div');
+        card.className = 'photo-card';
+
+        const thumb = document.createElement('div');
+        thumb.className = 'photo-thumb';
+
+        const img = document.createElement('img');
+        img.src = reader.result;
+        img.alt = "Foto caricata";
+        thumb.appendChild(img);
+
+        const cap = document.createElement('div');
+        cap.className = 'photo-caption';
+        cap.textContent = `${name} · foto`;
+
+        card.appendChild(thumb);
+        card.appendChild(cap);
+
+        const meCard = document.getElementById('me-card');
+        if (meCard && meCard.nextSibling) {
+          container.insertBefore(card, meCard.nextSibling);
+        } else {
+          container.appendChild(card);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = "";
+  });
+
+  updateProgress(0);
+</script>
+</body>
+</html>
